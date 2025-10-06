@@ -5,18 +5,22 @@ import axios from "axios";
 
 export function HomePage() {
   const [products, setProducts] = useState([]);
+  const [cartItems, setCartItems] = useState([]);
 
   useEffect(() => {
     axios
     .get("http://localhost:3000/api/products")
     .then((response) => setProducts(response.data))
+
+    axios.get("http://localhost:3000/api/cart-items")
+    .then((response) => setCartItems(response.data))
   }, []);
 
   return (
     <>
       <title>E-Commerce App</title>
 
-      <Header />
+      <Header cartItems={cartItems} />
 
       <div className="home-page">
         <div className="products-grid">
