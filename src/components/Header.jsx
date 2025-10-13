@@ -2,12 +2,13 @@ import "./header.css";
 import { Link } from "react-router";
 
 export function Header({ cartItems }) {
-
   let cartQuantity = 0;
 
-  cartItems.forEach((item) => {
-    cartQuantity += item.quantity;
-  });
+  if (Array.isArray(cartItems)) {
+    cartItems.forEach((item) => {
+      cartQuantity += item.quantity;
+    });
+  }
 
   return (
     <>
