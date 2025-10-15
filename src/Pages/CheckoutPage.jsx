@@ -10,13 +10,21 @@ export function CheckoutPage({ cartItems }) {
   const [paymentSummary, setPaymentSummary] = useState(null);
 
   useEffect(() => {
-    axios
-      .get("/api/delivery-options?expand=estimatedDeliveryTimeMs")
-      .then((response) => setDeliveryOptions(response.data));
+    async function fetchDeliveryOptions() {
+      const response = await axios.get(
+        "/api/delivery-options?expand=estimatedDeliveryTimeMs"
+      );
+      setDeliveryOptions(response.data);
+    }
 
-    axios
-      .get("/api/payment-summary")
-      .then((response) => setPaymentSummary(response.data));
+    fetchDeliveryOptions();
+
+    async function fetchPaymentSummary() {
+      const response = await axios.get("/api/payment-summary");
+      setPaymentSummary(response.data);
+    }
+
+    fetchPaymentSummary();
   }, []);
 
   return (
@@ -63,9 +71,11 @@ export function CheckoutPage({ cartItems }) {
                   <div key={cartItem.productId} className="cart-item-container">
                     <div className="delivery-date">
                       Delivery date:{" "}
-                      {dayjs(
-                        selectedDeliveryOption.estimatedDeliveryTimeMs
-                      ).format("dddd, MMMM D")}
+                      {selectedDeliveryOption
+                        ? dayjs(
+                            selectedDeliveryOption.estimatedDeliveryTimeMs
+                          ).format("dddd, MMMM D")
+                        : "Loading..."}
                     </div>
 
                     <div className="cart-item-details-grid">
