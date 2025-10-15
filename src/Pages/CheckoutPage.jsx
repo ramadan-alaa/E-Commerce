@@ -4,28 +4,54 @@ import { formatPrice } from "../utils/prices";
 import axios from "axios";
 import dayjs from "dayjs";
 import { useEffect, useState } from "react";
+import {useNavigate} from "react-router-dom";
 
-export function CheckoutPage({ cartItems }) {
+export function CheckoutPage({ cartItems, fetchCartItems }) {
+  const navigate = useNavigate();
   const [deliveryOptions, setDeliveryOptions] = useState([]);
   const [paymentSummary, setPaymentSummary] = useState(null);
 
   useEffect(() => {
     async function fetchDeliveryOptions() {
       const response = await axios.get(
-        "/api/delivery-options?expand=estimatedDeliveryTimeMs"
+        "/api/delivery-options?expand=estimatedDeliveryTime"
       );
       setDeliveryOptions(response.data);
     }
-
-    fetchDeliveryOptions();
 
     async function fetchPaymentSummary() {
       const response = await axios.get("/api/payment-summary");
       setPaymentSummary(response.data);
     }
 
+    fetchDeliveryOptions();
     fetchPaymentSummary();
-  }, []);
+  }, [cartItems]);
+
+  const updateQuantity = async (productId, newQuantity) => {
+    await axios.put(`/api/cart-items/${productId}`, {
+      quantity: Number(newQuantity),
+    });
+    await fetchCartItems();
+  };
+
+  const deleteCartItem = async (productId) => {
+    await axios.delete(`/api/cart-items/${productId}`);
+    await fetchCartItems();
+  };
+
+  const updateDeliveryOption = async (productId, deliveryOptionId) => {
+    await axios.put(`/api/cart-items/${productId}`, {
+      deliveryOptionId,
+    });
+    await fetchCartItems();
+  };
+ 
+  const placeOrder = async () => {
+    await axios.post("/api/orders");
+    await fetchCartItems();
+    navigate("/orders");
+  };
 
   return (
     <>
@@ -43,7 +69,7 @@ export function CheckoutPage({ cartItems }) {
           <div className="checkout-header-middle-section">
             Checkout (
             <a className="return-to-home-link" href="/">
-              3 items
+              {cartItems.length} items
             </a>
             )
           </div>
@@ -59,12 +85,10 @@ export function CheckoutPage({ cartItems }) {
 
         <div className="checkout-grid">
           <div className="order-summary">
-            {/* TODO: Show the cart items */}
             {cartItems.length > 0 &&
               cartItems.map((cartItem) => {
                 const selectedDeliveryOption = deliveryOptions.find(
-                  (deliveryOption) =>
-                    deliveryOption.id === cartItem.deliveryOptionId
+                  (option) => option.id === cartItem.deliveryOptionId
                 );
 
                 return (
@@ -94,14 +118,28 @@ export function CheckoutPage({ cartItems }) {
                         <div className="product-quantity">
                           <span>
                             Quantity:{" "}
-                            <span className="quantity-label">
-                              {cartItem.quantity}
-                            </span>
+                            <select
+                              value={cartItem.quantity}
+                              onChange={(e) =>
+                                updateQuantity(
+                                  cartItem.productId,
+                                  e.target.value
+                                )
+                              }
+                            >
+                              {Array.from({ length: 10 }, (_, i) => i + 1).map(
+                                (num) => (
+                                  <option key={num} value={num}>
+                                    {num}
+                                  </option>
+                                )
+                              )}
+                            </select>
                           </span>
-                          <span className="update-quantity-link link-primary">
-                            Update
-                          </span>
-                          <span className="delete-quantity-link link-primary">
+                          <span
+                            className="delete-quantity-link link-primary"
+                            onClick={() => deleteCartItem(cartItem.productId)}
+                          >
                             Delete
                           </span>
                         </div>
@@ -112,34 +150,37 @@ export function CheckoutPage({ cartItems }) {
                           Choose a delivery option:
                         </div>
 
-                        {deliveryOptions.map((deliveryOption) => {
-                          let priceStatus = "FREE Shipping";
-
-                          if (deliveryOption.priceCents > 0) {
-                            priceStatus = `${formatPrice(
-                              deliveryOption.priceCents
-                            )} - Shipping`;
-                          }
+                        {deliveryOptions.map((option) => {
+                          const priceStatus =
+                            option.priceCents > 0
+                              ? `${formatPrice(option.priceCents)} - Shipping`
+                              : "FREE Shipping";
 
                           return (
                             <div
-                              key={deliveryOption.id}
+                              key={option.id}
                               className="delivery-option"
+                              onClick={() =>
+                                updateDeliveryOption(
+                                  cartItem.productId,
+                                  option.id
+                                )
+                              }
                             >
                               <input
                                 type="radio"
-                                defaultChecked={
-                                  deliveryOption.id ===
-                                  cartItem.deliveryOptionId
+                                checked={
+                                  option.id === cartItem.deliveryOptionId
                                 }
                                 className="delivery-option-input"
                                 name={`delivery-option-${cartItem.productId}`}
+                                onChange={() => {}}
                               />
                               <div>
                                 <div className="delivery-option-date">
-                                  {dayjs(
-                                    deliveryOption.estimatedDeliveryTimeMs
-                                  ).format("dddd, MMMM D")}
+                                  {dayjs(option.estimatedDeliveryTimeMs).format(
+                                    "dddd, MMMM D"
+                                  )}
                                 </div>
                                 <div className="delivery-option-price">
                                   {priceStatus}
@@ -195,7 +236,8 @@ export function CheckoutPage({ cartItems }) {
                   </div>
                 </div>
 
-                <button className="place-order-button button-primary">
+                <button className="place-order-button button-primary"
+                onClick={placeOrder}>
                   Place your order
                 </button>
               </>

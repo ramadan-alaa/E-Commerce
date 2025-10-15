@@ -30,7 +30,7 @@ function App() {
         />
         <Route
           path="checkout"
-          element={<CheckoutPage cartItems={cartItems} />}
+          element={<CheckoutPage cartItems={cartItems} fetchCartItems={fetchCartItems} />}
         />
         <Route path="orders" element={<OrdersPage cartItems={cartItems} />} />
         <Route path="tracking" element={<TrackingPage />} />
